@@ -63,25 +63,240 @@ export async function saveToNotion(
   }
 }
 
-// Convert markdown to Notion blocks (simplified version)
+// Convert markdown to Notion blocks with rich formatting
 function markdownToBlocks(markdown: string): any[] {
-  // Split by double newline to get paragraphs
-  const paragraphs = markdown.split('\n\n').filter((p) => p.trim())
+  const lines = markdown.split('\n')
+  const blocks: any[] = []
+  let i = 0
 
-  // Limit to 100 blocks (Notion API constraint)
-  return paragraphs.slice(0, 100).map((paragraph) => ({
+  while (i < lines.length && blocks.length < 100) {
+    const line = lines[i].trim()
+
+    // Skip empty lines
+    if (!line) {
+      i++
+      continue
+    }
+
+    // Heading 1
+    if (line.startsWith('# ')) {
+      blocks.push(createHeadingBlock(1, line.substring(2)))
+      i++
+      continue
+    }
+
+    // Heading 2
+    if (line.startsWith('## ')) {
+      blocks.push(createHeadingBlock(2, line.substring(3)))
+      i++
+      continue
+    }
+
+    // Heading 3
+    if (line.startsWith('### ')) {
+      blocks.push(createHeadingBlock(3, line.substring(4)))
+      i++
+      continue
+    }
+
+    // Code block
+    if (line.startsWith('```')) {
+      const codeLines: string[] = []
+      i++
+      while (i < lines.length && !lines[i].trim().startsWith('```')) {
+        codeLines.push(lines[i])
+        i++
+      }
+      blocks.push(createCodeBlock(codeLines.join('\n')))
+      i++
+      continue
+    }
+
+    // Bulleted list
+    if (line.startsWith('- ') || line.startsWith('* ')) {
+      blocks.push(createBulletedListBlock(line.substring(2)))
+      i++
+      continue
+    }
+
+    // Numbered list
+    if (/^\d+\.\s/.test(line)) {
+      blocks.push(createNumberedListBlock(line.replace(/^\d+\.\s/, '')))
+      i++
+      continue
+    }
+
+    // Image (markdown format: ![alt](url))
+    const imageMatch = line.match(/!\[([^\]]*)\]\(([^)]+)\)/)
+    if (imageMatch) {
+      blocks.push(createImageBlock(imageMatch[2]))
+      i++
+      continue
+    }
+
+    // Default: paragraph with rich text parsing
+    blocks.push(createParagraphBlock(line))
+    i++
+  }
+
+  return blocks
+}
+
+function createHeadingBlock(level: 1 | 2 | 3, text: string): any {
+  const type = `heading_${level}`
+  return {
+    object: 'block',
+    type,
+    [type]: {
+      rich_text: parseRichText(text),
+    },
+  }
+}
+
+function createParagraphBlock(text: string): any {
+  return {
     object: 'block',
     type: 'paragraph',
     paragraph: {
+      rich_text: parseRichText(text),
+    },
+  }
+}
+
+function createBulletedListBlock(text: string): any {
+  return {
+    object: 'block',
+    type: 'bulleted_list_item',
+    bulleted_list_item: {
+      rich_text: parseRichText(text),
+    },
+  }
+}
+
+function createNumberedListBlock(text: string): any {
+  return {
+    object: 'block',
+    type: 'numbered_list_item',
+    numbered_list_item: {
+      rich_text: parseRichText(text),
+    },
+  }
+}
+
+function createCodeBlock(code: string): any {
+  return {
+    object: 'block',
+    type: 'code',
+    code: {
       rich_text: [
         {
           type: 'text',
-          text: {
-            // Limit to 2000 characters per block (Notion API constraint)
-            content: paragraph.slice(0, 2000),
-          },
+          text: { content: code.slice(0, 2000) },
         },
       ],
+      language: 'plain text',
     },
-  }))
+  }
+}
+
+function createImageBlock(url: string): any {
+  return {
+    object: 'block',
+    type: 'image',
+    image: {
+      type: 'external',
+      external: { url },
+    },
+  }
+}
+
+// Parse rich text with bold, italic, code, and links
+function parseRichText(text: string): any[] {
+  const richText: any[] = []
+  let remaining = text.slice(0, 2000) // Notion API limit
+
+  // Simple regex-based parsing for markdown inline formatting
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
+  const boldRegex = /\*\*([^*]+)\*\*/g
+  const italicRegex = /_([^_]+)_/g
+  const inlineCodeRegex = /`([^`]+)`/g
+
+  let lastIndex = 0
+  const parts: Array<{ start: number; end: number; type: string; content: string; url?: string }> = []
+
+  // Extract links
+  let match
+  while ((match = linkRegex.exec(remaining)) !== null) {
+    parts.push({ start: match.index, end: linkRegex.lastIndex, type: 'link', content: match[1], url: match[2] })
+  }
+
+  // Extract bold
+  boldRegex.lastIndex = 0
+  while ((match = boldRegex.exec(remaining)) !== null) {
+    parts.push({ start: match.index, end: boldRegex.lastIndex, type: 'bold', content: match[1] })
+  }
+
+  // Extract italic
+  italicRegex.lastIndex = 0
+  while ((match = italicRegex.exec(remaining)) !== null) {
+    parts.push({ start: match.index, end: italicRegex.lastIndex, type: 'italic', content: match[1] })
+  }
+
+  // Extract inline code
+  inlineCodeRegex.lastIndex = 0
+  while ((match = inlineCodeRegex.exec(remaining)) !== null) {
+    parts.push({ start: match.index, end: inlineCodeRegex.lastIndex, type: 'code', content: match[1] })
+  }
+
+  // If no formatting found, return plain text
+  if (parts.length === 0) {
+    return [{ type: 'text', text: { content: remaining } }]
+  }
+
+  // Sort by start position
+  parts.sort((a, b) => a.start - b.start)
+
+  // Build rich text array
+  parts.forEach((part) => {
+    // Add plain text before this part
+    if (part.start > lastIndex) {
+      const plainText = remaining.substring(lastIndex, part.start)
+      richText.push({ type: 'text', text: { content: plainText } })
+    }
+
+    // Add formatted text
+    if (part.type === 'link') {
+      richText.push({
+        type: 'text',
+        text: { content: part.content, link: { url: part.url } },
+      })
+    } else if (part.type === 'bold') {
+      richText.push({
+        type: 'text',
+        text: { content: part.content },
+        annotations: { bold: true },
+      })
+    } else if (part.type === 'italic') {
+      richText.push({
+        type: 'text',
+        text: { content: part.content },
+        annotations: { italic: true },
+      })
+    } else if (part.type === 'code') {
+      richText.push({
+        type: 'text',
+        text: { content: part.content },
+        annotations: { code: true },
+      })
+    }
+
+    lastIndex = part.end
+  })
+
+  // Add remaining plain text
+  if (lastIndex < remaining.length) {
+    richText.push({ type: 'text', text: { content: remaining.substring(lastIndex) } })
+  }
+
+  return richText.length > 0 ? richText : [{ type: 'text', text: { content: remaining } }]
 }
