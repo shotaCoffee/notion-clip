@@ -21,7 +21,7 @@ turndownService.addRule('preserveLinks', {
 // Remove unnecessary whitespace and clean up
 turndownService.addRule('removeExtraWhitespace', {
   filter: ['div', 'span'],
-  replacement: (content) => content,
+  replacement: content => content,
 })
 
 export function convertToMarkdown(html: string): string {

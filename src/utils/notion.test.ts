@@ -105,9 +105,7 @@ describe('notion utilities', () => {
       const body = JSON.parse(callArgs.body)
 
       expect(body.properties.Author.rich_text[0].text.content).toBe('Jane Doe')
-      expect(body.properties['Site Name'].rich_text[0].text.content).toBe(
-        'Tech Blog'
-      )
+      expect(body.properties['Site Name'].rich_text[0].text.content).toBe('Tech Blog')
     })
 
     it('should convert markdown to Notion blocks', async () => {
@@ -165,9 +163,7 @@ describe('notion utilities', () => {
     })
 
     it('should handle network errors gracefully', async () => {
-      const mockFetch = vi
-        .fn()
-        .mockRejectedValue(new Error('Network error'))
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'))
       global.fetch = mockFetch
 
       const content: ExtractedContent = {
@@ -196,10 +192,7 @@ describe('notion utilities', () => {
       global.fetch = mockFetch
 
       // Create very long markdown with many paragraphs
-      const longMarkdown = Array.from(
-        { length: 150 },
-        (_, i) => `Paragraph ${i + 1}`
-      ).join('\n\n')
+      const longMarkdown = Array.from({ length: 150 }, (_, i) => `Paragraph ${i + 1}`).join('\n\n')
 
       const content: ExtractedContent = {
         title: 'Long Article',

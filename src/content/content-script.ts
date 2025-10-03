@@ -1,10 +1,6 @@
 import { Readability } from '@mozilla/readability'
 import { convertToMarkdown } from '../utils/markdown'
-import type {
-  ExtractContentMessage,
-  ExtractContentResponse,
-  ExtractedContent,
-} from '../types'
+import type { ExtractContentMessage, ExtractContentResponse, ExtractedContent } from '../types'
 
 // Listen for messages from background script
 chrome.runtime.onMessage.addListener(

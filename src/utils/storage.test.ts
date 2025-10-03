@@ -5,20 +5,21 @@ import type { NotionConfig } from '../types'
 // Mock chrome.storage.local
 const mockStorage: Record<string, unknown> = {}
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ;(global as any).chrome = {
   storage: {
     local: {
-      set: vi.fn((items) => {
+      set: vi.fn(items => {
         Object.assign(mockStorage, items)
         return Promise.resolve()
       }),
-      get: vi.fn((key) => {
+      get: vi.fn(key => {
         if (typeof key === 'string') {
           return Promise.resolve({ [key]: mockStorage[key] })
         }
         return Promise.resolve(mockStorage)
       }),
-      remove: vi.fn((key) => {
+      remove: vi.fn(key => {
         if (typeof key === 'string') {
           delete mockStorage[key]
         }
@@ -31,7 +32,7 @@ const mockStorage: Record<string, unknown> = {}
 describe('storage utilities', () => {
   beforeEach(() => {
     // Clear mock storage before each test
-    Object.keys(mockStorage).forEach((key) => delete mockStorage[key])
+    Object.keys(mockStorage).forEach(key => delete mockStorage[key])
     vi.clearAllMocks()
   })
 

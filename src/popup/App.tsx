@@ -10,7 +10,7 @@ function App() {
 
   useEffect(() => {
     // Load saved configuration
-    getNotionConfig().then((savedConfig) => {
+    getNotionConfig().then(savedConfig => {
       if (savedConfig) {
         setConfig(savedConfig)
         setTokenInput(savedConfig.token)
@@ -54,7 +54,7 @@ function App() {
             id="token"
             type="password"
             value={tokenInput}
-            onChange={(e) => setTokenInput(e.target.value)}
+            onChange={e => setTokenInput(e.target.value)}
             placeholder="secret_..."
           />
         </div>
@@ -65,7 +65,7 @@ function App() {
             id="database"
             type="text"
             value={databaseIdInput}
-            onChange={(e) => setDatabaseIdInput(e.target.value)}
+            onChange={e => setDatabaseIdInput(e.target.value)}
             placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
           />
         </div>
@@ -75,9 +75,7 @@ function App() {
         </button>
 
         {message && (
-          <div className={`message ${message.includes('❌') ? 'error' : 'success'}`}>
-            {message}
-          </div>
+          <div className={`message ${message.includes('❌') ? 'error' : 'success'}`}>{message}</div>
         )}
       </div>
 

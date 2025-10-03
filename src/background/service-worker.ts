@@ -1,10 +1,6 @@
 import { saveToNotion } from '../utils/notion'
 import { getNotionConfig } from '../utils/storage'
-import type {
-  ExtractedContent,
-  ExtractContentMessage,
-  ExtractContentResponse,
-} from '../types'
+import type { ExtractedContent, ExtractContentMessage, ExtractContentResponse } from '../types'
 
 // Create context menu on extension install
 chrome.runtime.onInstalled.addListener(() => {
@@ -32,10 +28,7 @@ chrome.contextMenus.onClicked.addListener(
       try {
         // Send message to content script to extract content
         const message: ExtractContentMessage = { action: 'extractContent' }
-        const response = (await chrome.tabs.sendMessage(
-          tab.id,
-          message
-        )) as ExtractContentResponse
+        const response = (await chrome.tabs.sendMessage(tab.id, message)) as ExtractContentResponse
 
         if (!response.success) {
           // Clear saving notification
@@ -43,10 +36,7 @@ chrome.contextMenus.onClicked.addListener(
           chrome.action.setBadgeText({ text: '✗' })
           chrome.action.setBadgeBackgroundColor({ color: '#D13438' })
 
-          showNotification(
-            'エラー',
-            response.error || '本文の抽出に失敗しました'
-          )
+          showNotification('エラー', response.error || '本文の抽出に失敗しました')
 
           // Clear badge after 3 seconds
           setTimeout(() => chrome.action.setBadgeText({ text: '' }), 3000)
@@ -62,7 +52,10 @@ chrome.contextMenus.onClicked.addListener(
           chrome.action.setBadgeText({ text: '✗' })
           chrome.action.setBadgeBackgroundColor({ color: '#D13438' })
 
-          showNotification('エラー', 'Notion設定が必要です。拡張機能アイコンをクリックして設定してください。')
+          showNotification(
+            'エラー',
+            'Notion設定が必要です。拡張機能アイコンをクリックして設定してください。'
+          )
 
           setTimeout(() => chrome.action.setBadgeText({ text: '' }), 3000)
           return
@@ -78,10 +71,7 @@ chrome.contextMenus.onClicked.addListener(
           chrome.action.setBadgeText({ text: '✓' })
           chrome.action.setBadgeBackgroundColor({ color: '#107C10' })
 
-          showNotification(
-            '✅ 保存完了',
-            `「${extracted.title}」をNotionに保存しました！`
-          )
+          showNotification('✅ 保存完了', `「${extracted.title}」をNotionに保存しました！`)
 
           // Clear badge after 3 seconds
           setTimeout(() => chrome.action.setBadgeText({ text: '' }), 3000)
@@ -99,10 +89,7 @@ chrome.contextMenus.onClicked.addListener(
         chrome.action.setBadgeText({ text: '✗' })
         chrome.action.setBadgeBackgroundColor({ color: '#D13438' })
 
-        showNotification(
-          '❌ エラー',
-          error instanceof Error ? error.message : '保存に失敗しました'
-        )
+        showNotification('❌ エラー', error instanceof Error ? error.message : '保存に失敗しました')
 
         setTimeout(() => chrome.action.setBadgeText({ text: '' }), 3000)
       }

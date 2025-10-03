@@ -19,7 +19,7 @@ export default defineConfig({
         content: resolve(__dirname, 'src/content/content-script.ts'),
       },
       output: {
-        entryFileNames: (chunkInfo) => {
+        entryFileNames: chunkInfo => {
           if (chunkInfo.name === 'background') {
             return 'src/background/service-worker.js'
           }

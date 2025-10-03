@@ -1,5 +1,62 @@
 import type { ExtractedContent, NotionConfig, SaveResult } from '../types'
 
+// Notion Block Types
+type NotionBlock =
+  | HeadingBlock
+  | ParagraphBlock
+  | BulletedListItemBlock
+  | NumberedListItemBlock
+  | CodeBlock
+  | ImageBlock
+
+type HeadingBlock = {
+  object: 'block'
+  type: 'heading_1' | 'heading_2' | 'heading_3'
+  heading_1?: { rich_text: RichText[] }
+  heading_2?: { rich_text: RichText[] }
+  heading_3?: { rich_text: RichText[] }
+}
+
+type ParagraphBlock = {
+  object: 'block'
+  type: 'paragraph'
+  paragraph: { rich_text: RichText[] }
+}
+
+type BulletedListItemBlock = {
+  object: 'block'
+  type: 'bulleted_list_item'
+  bulleted_list_item: { rich_text: RichText[] }
+}
+
+type NumberedListItemBlock = {
+  object: 'block'
+  type: 'numbered_list_item'
+  numbered_list_item: { rich_text: RichText[] }
+}
+
+type CodeBlock = {
+  object: 'block'
+  type: 'code'
+  code: { rich_text: RichText[]; language: string }
+}
+
+type ImageBlock = {
+  object: 'block'
+  type: 'image'
+  image: { type: 'external'; external: { url: string } }
+}
+
+type RichText = {
+  type: 'text'
+  text: { content: string; link?: { url: string } }
+  annotations?: {
+    bold?: boolean
+    italic?: boolean
+    code?: boolean
+  }
+}
+
 export async function saveToNotion(
   content: ExtractedContent,
   config: NotionConfig
@@ -64,9 +121,9 @@ export async function saveToNotion(
 }
 
 // Convert markdown to Notion blocks with rich formatting
-function markdownToBlocks(markdown: string): any[] {
+function markdownToBlocks(markdown: string): NotionBlock[] {
   const lines = markdown.split('\n')
-  const blocks: any[] = []
+  const blocks: NotionBlock[] = []
   let i = 0
 
   while (i < lines.length && blocks.length < 100) {
@@ -142,18 +199,18 @@ function markdownToBlocks(markdown: string): any[] {
   return blocks
 }
 
-function createHeadingBlock(level: 1 | 2 | 3, text: string): any {
-  const type = `heading_${level}`
+function createHeadingBlock(level: 1 | 2 | 3, text: string): HeadingBlock {
+  const type = `heading_${level}` as 'heading_1' | 'heading_2' | 'heading_3'
   return {
     object: 'block',
     type,
     [type]: {
       rich_text: parseRichText(text),
     },
-  }
+  } as HeadingBlock
 }
 
-function createParagraphBlock(text: string): any {
+function createParagraphBlock(text: string): ParagraphBlock {
   return {
     object: 'block',
     type: 'paragraph',
@@ -163,7 +220,7 @@ function createParagraphBlock(text: string): any {
   }
 }
 
-function createBulletedListBlock(text: string): any {
+function createBulletedListBlock(text: string): BulletedListItemBlock {
   return {
     object: 'block',
     type: 'bulleted_list_item',
@@ -173,7 +230,7 @@ function createBulletedListBlock(text: string): any {
   }
 }
 
-function createNumberedListBlock(text: string): any {
+function createNumberedListBlock(text: string): NumberedListItemBlock {
   return {
     object: 'block',
     type: 'numbered_list_item',
@@ -183,7 +240,7 @@ function createNumberedListBlock(text: string): any {
   }
 }
 
-function createCodeBlock(code: string): any {
+function createCodeBlock(code: string): CodeBlock {
   return {
     object: 'block',
     type: 'code',
@@ -199,7 +256,7 @@ function createCodeBlock(code: string): any {
   }
 }
 
-function createImageBlock(url: string): any {
+function createImageBlock(url: string): ImageBlock {
   return {
     object: 'block',
     type: 'image',
@@ -211,9 +268,9 @@ function createImageBlock(url: string): any {
 }
 
 // Parse rich text with bold, italic, code, and links
-function parseRichText(text: string): any[] {
-  const richText: any[] = []
-  let remaining = text.slice(0, 2000) // Notion API limit
+function parseRichText(text: string): RichText[] {
+  const richText: RichText[] = []
+  const remaining = text.slice(0, 2000) // Notion API limit
 
   // Simple regex-based parsing for markdown inline formatting
   const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
@@ -222,12 +279,19 @@ function parseRichText(text: string): any[] {
   const inlineCodeRegex = /`([^`]+)`/g
 
   let lastIndex = 0
-  const parts: Array<{ start: number; end: number; type: string; content: string; url?: string }> = []
+  const parts: Array<{ start: number; end: number; type: string; content: string; url?: string }> =
+    []
 
   // Extract links
   let match
   while ((match = linkRegex.exec(remaining)) !== null) {
-    parts.push({ start: match.index, end: linkRegex.lastIndex, type: 'link', content: match[1], url: match[2] })
+    parts.push({
+      start: match.index,
+      end: linkRegex.lastIndex,
+      type: 'link',
+      content: match[1],
+      url: match[2],
+    })
   }
 
   // Extract bold
@@ -239,13 +303,23 @@ function parseRichText(text: string): any[] {
   // Extract italic
   italicRegex.lastIndex = 0
   while ((match = italicRegex.exec(remaining)) !== null) {
-    parts.push({ start: match.index, end: italicRegex.lastIndex, type: 'italic', content: match[1] })
+    parts.push({
+      start: match.index,
+      end: italicRegex.lastIndex,
+      type: 'italic',
+      content: match[1],
+    })
   }
 
   // Extract inline code
   inlineCodeRegex.lastIndex = 0
   while ((match = inlineCodeRegex.exec(remaining)) !== null) {
-    parts.push({ start: match.index, end: inlineCodeRegex.lastIndex, type: 'code', content: match[1] })
+    parts.push({
+      start: match.index,
+      end: inlineCodeRegex.lastIndex,
+      type: 'code',
+      content: match[1],
+    })
   }
 
   // If no formatting found, return plain text
@@ -257,7 +331,7 @@ function parseRichText(text: string): any[] {
   parts.sort((a, b) => a.start - b.start)
 
   // Build rich text array
-  parts.forEach((part) => {
+  parts.forEach(part => {
     // Add plain text before this part
     if (part.start > lastIndex) {
       const plainText = remaining.substring(lastIndex, part.start)
@@ -265,7 +339,7 @@ function parseRichText(text: string): any[] {
     }
 
     // Add formatted text
-    if (part.type === 'link') {
+    if (part.type === 'link' && part.url) {
       richText.push({
         type: 'text',
         text: { content: part.content, link: { url: part.url } },
